@@ -48,7 +48,7 @@ class ConnectorBridge:
 	# Create the UDP socket and send the payload
 	# Timeout is set to one second and will stop if no reply received
 	# This returns the JSON formatted data from the hub
-	def UDP(self, cmd):
+	def sendUDP(self, cmd):
 		bytes = cmd.encode()
 
 		try:
@@ -76,19 +76,28 @@ class ConnectorBridge:
 		payload = self.Payload("GetDeviceList").toJSON()
 
 		# Send the payload to the hub, and get the reply
-		return self.UDP(payload)
+		response = self.sendUDP(payload)
 
-	def info(self):
-		print (f'{self.colour.purple}'+os.path.basename(__file__)+' [name/all] [open/close/up/down/stop/halt/query/status/shuffle/0-100]')
-		# if len(blinds)!=int(len(reply['data']))-1:
-		# 	print (f'{colour.red}Warning - Blinds in script  '+str(len(blinds)))
-		# 	print ('Warning - Programmed Blinds '+str(len(blinds)-1)+f'{colour.purple}')
-		# else:
-		# 	print ('Controlled blinds '+str(int(len(reply['data']))-1))
-		print ('Firmware version '+str(reply['fwVersion']))
-		print ('MAC address '+mac)
-		print ('Key '+key)
-		print ('Token '+str(reply['token']))
+		# Update the token for later
+		self._token = response["token"]
+
+		return response
+
+	def getInfo(self):
+		response = self.getDeviceList()
+
+		print("Device type: " + response["deviceType"])
+		print("Firmware version: " + response["fwVersion"])
+		print("Protocol version: " + response["ProtocolVersion"])
+		print("MAC address: " + response["mac"])
+
+		deviceCount = len(response["data"])
+
+		print("Number of devices: " + str(deviceCount))
+
+		if deviceCount > 0:
+			for deviceData in response["data"]:
+				print("--> Device type: " + deviceData["deviceType"] + " MAC: " + deviceData["mac"])
 
 	def test(self):
 		_logger.debug("Test output: " + self._key)
@@ -106,7 +115,7 @@ def main():
 	connector = ConnectorBridge(key="")
 
 	connector.test()
-	# connector.info()
+	connector.getInfo()
 
 if __name__ == "__main__":
     main()
